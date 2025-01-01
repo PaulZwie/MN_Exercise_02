@@ -28,11 +28,11 @@ def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
     return firing_matrix
 
 
-def plotSpikeRaster(firing_matrix):
+def plotSpikeRaster(firing_matrix, fsamp):
     fig, ax = plt.subplots(figsize=(8, 4))
 
     for i, unit in enumerate(firing_matrix):
-        spike_times = [t for t, spike in enumerate(unit) if spike == 1]
+        spike_times = [t / fsamp for t, spike in enumerate(unit) if spike == 1]
         for spike_time in spike_times:
             ax.vlines(spike_time, i, i + 0.75, color='k')
 
@@ -40,8 +40,7 @@ def plotSpikeRaster(firing_matrix):
     ax.set_ylabel('Motor Units')
     ax.set_yticks(range(len(firing_matrix)))
     ax.set_yticklabels([f'{i + 1}' for i in range(len(firing_matrix))])
-    ax.set_ylim(-0.5, len(firing_matrix) - 0.5)
-    ax.set_xlim(0, len(firing_matrix[0]) - 1)
+    ax.set_xlim(0, (len(firing_matrix[0]) + 0.95 * fsamp) / fsamp)
     plt.show()
 
 
@@ -57,7 +56,7 @@ def main():
     signal_length_samples = data['signal_length_samples']
     firing_matrix = MUPulses_to_firing_matrix(MUPulses)
 
-    plotSpikeRaster(firing_matrix)
+    plotSpikeRaster(firing_matrix, fsamp)
 
 
 if __name__ == "__main__":
