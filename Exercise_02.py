@@ -28,19 +28,44 @@ def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
     return firing_matrix
 
 
-def plotSpikeRaster(firing_matrix, fsamp):
-    fig, ax = plt.subplots(figsize=(8, 4))
+def plot_spike_trains_and_force(firing_matrix, force_signal):
+    """
+    Plots the spike trains of all motor units along with the force signal.
 
-    for i, unit in enumerate(firing_matrix):
-        spike_times = [t / fsamp for t, spike in enumerate(unit) if spike == 1]
-        for spike_time in spike_times:
-            ax.vlines(spike_time, i, i + 0.75, color='k')
+    Args:
+        firing_matrix: A 2D NumPy array where rows represent motor units
+                      and columns represent time points.
+                      A value of 1 indicates a spike, 0 otherwise.
+        force_signal: A 1D NumPy array representing the force signal over time.
+    """
 
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Motor Units')
-    ax.set_yticks(range(len(firing_matrix)))
-    ax.set_yticklabels([f'{i + 1}' for i in range(len(firing_matrix))])
-    ax.set_xlim(0, (len(firing_matrix[0]) + 0.95 * fsamp) / fsamp)
+    num_motor_units, num_time_points = firing_matrix.shape
+
+    # Create a figure and axes
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Plot spike trains
+    for i in range(num_motor_units):
+        spike_times = np.where(firing_matrix[i, :] == 1)[0]
+        ax1.scatter(spike_times, np.ones(len(spike_times)) * i, marker='|', color='black')
+
+    # Set y-axis for motor units
+    ax1.set_ylabel('Motor Unit Number')
+    ax1.set_yticks(range(num_motor_units))
+    ax1.set_yticklabels(range(1, num_motor_units + 1))
+
+    # Create a second y-axis for force
+    ax2 = ax1.twinx()
+    ax2.plot(force_signal, color='red')
+    ax2.set_ylabel('Force (N)')
+
+    # Set x-axis label
+    ax1.set_xlabel('Time (s)')
+
+    # Set title
+    plt.title('Spike Trains and Force Signal')
+
+    # Show the plot
     plt.show()
 
 
@@ -56,7 +81,11 @@ def main():
     signal_length_samples = data['signal_length_samples']
     firing_matrix = MUPulses_to_firing_matrix(MUPulses)
 
-    plotSpikeRaster(firing_matrix, fsamp)
+
+
+
+    #Plots
+    plot_spike_trains_and_force(firing_matrix, force_signal)
 
 
 if __name__ == "__main__":
