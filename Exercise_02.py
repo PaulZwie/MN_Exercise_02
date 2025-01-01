@@ -1,33 +1,64 @@
-import numpy as np
+import os
+
 import matplotlib.pyplot as plt
-import Data.plotSpikeRaster as psr
+import numpy as np
+import scipy as sp
 
-# Example firing matrix
-firingMatrix = np.array([
-    [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
-], dtype=bool)
 
-# Example force signal
-time = np.arange(firingMatrix.shape[1])
-force_signal = np.sin(time / 10) * 10  # Example force signal
+def import_data(file_path) -> dict:
+    return sp.io.loadmat(file_path)
 
-# Plotting
-fig, ax1 = plt.subplots()
 
-# Plot spike trains
-psr(firingMatrix, plot_type='vertline', fig_handle=ax1, vert_spike_height=0.9)
+def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
+    # find max entry in MUPulses
+    maximum = 0
+    for array in MUPulses[0]:
+        max_array_entry = np.max(array[0])
+        if max_array_entry > maximum:
+            maximum = max_array_entry
 
-# Plot force signal on secondary y-axis
-ax2 = ax1.twinx()
-ax2.plot(time, force_signal, 'r-', label='Force Signal')
-ax2.set_ylabel('Force (N)', color='r')
-ax2.tick_params(axis='y', labelcolor='r')
+    maximum += 1  # because location counted from 00
 
-# Set labels and title
-ax1.set_xlabel('Time (samples)')
-ax1.set_ylabel('Motor Units')
-ax1.set_title('Spike Trains and Force Signal')
+    firing_matrix = np.zeros(shape=(MUPulses.shape[1], maximum))
 
-# Show plot
-plt.show()
+    for array_count, array in enumerate(MUPulses[0]):
+        for entry in array[0]:
+            firing_matrix[array_count][entry] = 1
+
+    return firing_matrix
+
+
+def plotSpikeRaster(firing_matrix):
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    for i, unit in enumerate(firing_matrix):
+        spike_times = [t for t, spike in enumerate(unit) if spike == 1]
+        for spike_time in spike_times:
+            ax.vlines(spike_time, i, i + 0.75, color='k')
+
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Motor Units')
+    ax.set_yticks(range(len(firing_matrix)))
+    ax.set_yticklabels([f'{i + 1}' for i in range(len(firing_matrix))])
+    ax.set_ylim(-0.5, len(firing_matrix) - 0.5)
+    ax.set_xlim(0, len(firing_matrix[0]) - 1)
+    plt.show()
+
+
+def main():
+    cwd = os.getcwd()
+    file_path = os.path.join(cwd, "Data", "iEMG_contraction.mat")
+
+    data = import_data(file_path)
+    EMGSig = data['EMGSig']
+    MUPulses = data['MUPulses']
+    force_signal = data['force_signal']
+    fsamp = data['fsamp']
+    signal_length_samples = data['signal_length_samples']
+    firing_matrix = MUPulses_to_firing_matrix(MUPulses)
+
+    plotSpikeRaster(firing_matrix)
+
+
+if __name__ == "__main__":
+    main()
