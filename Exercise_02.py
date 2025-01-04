@@ -9,7 +9,7 @@ def import_data(file_path) -> dict:
     return sp.io.loadmat(file_path)
 
 
-def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
+def MUPulses_to_firing_matrix(MUPulses: dict) -> np.ndarray:
     # find max entry in MUPulses
     maximum = 0
     for array in MUPulses[0]:
@@ -28,7 +28,7 @@ def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
     return firing_matrix
 
 
-def plot_spike_trains_and_force(firing_matrix, force_signal, fsamp):
+def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal: dict, fsamp: int) -> None:
     """
     Plots the spike trains of all motor units along with the force signal.
 
@@ -59,8 +59,8 @@ def plot_spike_trains_and_force(firing_matrix, force_signal, fsamp):
     force_sig_len = len(force_signal)
     ax1.set_xticks(
         [0, 0.2 * force_sig_len, 0.4 * force_sig_len, 0.6 * force_sig_len, 0.8 * force_sig_len, force_sig_len - 1],
-        [0, int ((0.2 * force_sig_len) / fsamp), int ((0.4 * force_sig_len) / fsamp), int ((0.6 * force_sig_len) / fsamp),
-         int ((0.8 * force_sig_len) / fsamp), int ((force_sig_len - 1) / fsamp)])
+        [0, int(((0.2 * force_sig_len) / fsamp).item()), int(((0.4 * force_sig_len) / fsamp).item()), int(((0.6 * force_sig_len) / fsamp).item()),
+         int(((0.8 * force_sig_len) / fsamp).item()), int(((force_sig_len - 1) / fsamp).item())])
 
     # Create a second y-axis for force
     ax2 = ax1.twinx()
@@ -75,6 +75,10 @@ def plot_spike_trains_and_force(firing_matrix, force_signal, fsamp):
 
     # Show the plot
     plt.show()
+
+
+def sort_mus(MUPulses: dict) -> dict:
+    pass
 
 
 def main():
