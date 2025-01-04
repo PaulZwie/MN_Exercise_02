@@ -28,7 +28,7 @@ def MUPulses_to_firing_matrix(MUPulses) -> np.ndarray:
     return firing_matrix
 
 
-def plot_spike_trains_and_force(firing_matrix, force_signal):
+def plot_spike_trains_and_force(firing_matrix, force_signal, fsamp):
     """
     Plots the spike trains of all motor units along with the force signal.
 
@@ -44,6 +44,8 @@ def plot_spike_trains_and_force(firing_matrix, force_signal):
     # Create a figure and axes
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
+    time = (np.arange(0, firing_matrix.shape[1], 6) / fsamp)
+
     # Plot spike trains
     for i in range(num_motor_units):
         spike_times = np.where(firing_matrix[i, :] == 1)[0]
@@ -53,6 +55,12 @@ def plot_spike_trains_and_force(firing_matrix, force_signal):
     ax1.set_ylabel('Motor Unit Number')
     ax1.set_yticks(range(num_motor_units))
     ax1.set_yticklabels(range(1, num_motor_units + 1))
+
+    force_sig_len = len(force_signal)
+    ax1.set_xticks(
+        [0, 0.2 * force_sig_len, 0.4 * force_sig_len, 0.6 * force_sig_len, 0.8 * force_sig_len, force_sig_len - 1],
+        [0, int ((0.2 * force_sig_len) / fsamp), int ((0.4 * force_sig_len) / fsamp), int ((0.6 * force_sig_len) / fsamp),
+         int ((0.8 * force_sig_len) / fsamp), int ((force_sig_len - 1) / fsamp)])
 
     # Create a second y-axis for force
     ax2 = ax1.twinx()
@@ -81,11 +89,8 @@ def main():
     signal_length_samples = data['signal_length_samples']
     firing_matrix = MUPulses_to_firing_matrix(MUPulses)
 
-
-
-
-    #Plots
-    plot_spike_trains_and_force(firing_matrix, force_signal)
+    # Plots
+    plot_spike_trains_and_force(firing_matrix, force_signal, fsamp)
 
 
 if __name__ == "__main__":
