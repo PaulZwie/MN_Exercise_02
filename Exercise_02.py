@@ -5,30 +5,30 @@ import numpy as np
 import scipy as sp
 
 
-def import_data(file_path) -> dict:
+def import_data(file_path):
     return sp.io.loadmat(file_path)
 
 
-def MUPulses_to_firing_matrix(MUPulses: dict) -> np.ndarray:
+def mu_pulses_to_firing_matrix(mu_pulses) -> np.ndarray:
     # find max entry in MUPulses
     maximum = 0
-    for array in MUPulses[0]:
+    for array in mu_pulses:
         max_array_entry = np.max(array[0])
         if max_array_entry > maximum:
             maximum = max_array_entry
 
     maximum += 1  # because location counted from 00
 
-    firing_matrix = np.zeros(shape=(MUPulses.shape[1], maximum))
+    firing_matrix = np.zeros(shape=(len(mu_pulses), maximum))
 
-    for array_count, array in enumerate(MUPulses[0]):
+    for array_count, array in enumerate(mu_pulses):
         for entry in array[0]:
             firing_matrix[array_count][entry] = 1
 
     return firing_matrix
 
 
-def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal: dict, fsamp: int) -> None:
+def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal, fsamp):
     """
     Plots the spike trains of all motor units along with the force signal.
 
@@ -44,8 +44,6 @@ def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal: dict, f
     # Create a figure and axes
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
-    time = (np.arange(0, firing_matrix.shape[1], 6) / fsamp)
-
     # Plot spike trains
     for i in range(num_motor_units):
         spike_times = np.where(firing_matrix[i, :] == 1)[0]
@@ -59,7 +57,8 @@ def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal: dict, f
     force_sig_len = len(force_signal)
     ax1.set_xticks(
         [0, 0.2 * force_sig_len, 0.4 * force_sig_len, 0.6 * force_sig_len, 0.8 * force_sig_len, force_sig_len - 1],
-        [0, int(((0.2 * force_sig_len) / fsamp).item()), int(((0.4 * force_sig_len) / fsamp).item()), int(((0.6 * force_sig_len) / fsamp).item()),
+        [0, int(((0.2 * force_sig_len) / fsamp).item()), int(((0.4 * force_sig_len) / fsamp).item()),
+         int(((0.6 * force_sig_len) / fsamp).item()),
          int(((0.8 * force_sig_len) / fsamp).item()), int(((force_sig_len - 1) / fsamp).item())])
 
     # Create a second y-axis for force
@@ -77,8 +76,49 @@ def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal: dict, f
     plt.show()
 
 
-def sort_mus(MUPulses: dict) -> dict:
-    pass
+def sort_mus(mu_pulses: dict):
+    mu_sort = sorted(mu_pulses, key=lambda x: x[0][0])
+
+    return mu_sort
+
+
+def pulses_to_list(mu_pulses):
+    array_list = []
+
+    for array in mu_pulses[0]:
+        array_list.append(array)
+
+    return array_list
+
+
+def calculate_idr(mu_pulse, fsamp):
+    timediff = np.diff(mu_pulse / fsamp)
+
+    idr = 1 / timediff
+
+    time_stamps = mu_pulse[0][:-1] / fsamp
+
+    return [time_stamps, idr]
+
+
+def plot_idr_and_force(idr_01, idr_02, mu_nr_01, mu_nr_02, force_signal, fsamp):
+    time_vector = np.rot90((np.arange(0, len(force_signal)) / fsamp))
+
+    fig, axs1 = plt.subplots(figsize=(8, 4))
+
+    axs1.set_ylabel("Discharge Rate (Hz)")
+    axs1.set_xlabel("Time (s)")
+    axs1.scatter(x=idr_01[0], y=idr_01[1], c='blue', label=f"MU #{mu_nr_01}")
+    axs1.scatter(x=idr_02[0], y=idr_02[1], c='red', label=f"MU #{mu_nr_02}")
+
+    axs2 = axs1.twinx()
+    axs2.set_ylabel("Force Signal (N)")
+    axs2.plot(time_vector, force_signal, c='black', label='Force Signal')
+
+    fig.legend()
+    plt.title("Instantaneous Discharge Rate with Force Signal")
+    plt.tight_layout()
+    plt.show()
 
 
 def main():
@@ -86,15 +126,33 @@ def main():
     file_path = os.path.join(cwd, "Data", "iEMG_contraction.mat")
 
     data = import_data(file_path)
+
     EMGSig = data['EMGSig']
-    MUPulses = data['MUPulses']
+
+    mu_pulses = data['MUPulses']
+    mu_pulses = pulses_to_list(mu_pulses)
+    sorted_mu = sort_mus(mu_pulses)
+
     force_signal = data['force_signal']
+
     fsamp = data['fsamp']
+
     signal_length_samples = data['signal_length_samples']
-    firing_matrix = MUPulses_to_firing_matrix(MUPulses)
+
+    firing_matrix = mu_pulses_to_firing_matrix(mu_pulses)
+    sorted_firing_matrix = mu_pulses_to_firing_matrix(sorted_mu)
+
+    idr_01 = calculate_idr(mu_pulses[1], fsamp)
+    idr_02 = calculate_idr(mu_pulses[2], fsamp)
 
     # Plots
-    plot_spike_trains_and_force(firing_matrix, force_signal, fsamp)
+    # Plot original spike train
+    # plot_spike_trains_and_force(firing_matrix=firing_matrix, force_signal=force_signal, fsamp=fsamp)
+
+    # Plot sorted spike train
+    # plot_spike_trains_and_force(firing_matrix=sorted_firing_matrix, force_signal=force_signal, fsamp=fsamp)
+
+    plot_idr_and_force(idr_01=idr_01, idr_02=idr_02, mu_nr_01=1, mu_nr_02=2, force_signal=force_signal, fsamp=fsamp)
 
 
 if __name__ == "__main__":
