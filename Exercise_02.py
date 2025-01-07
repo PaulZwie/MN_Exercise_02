@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 
+import Data.spikeTriggeredAveraging as sta
+
 
 def import_data(file_path):
     return sp.io.loadmat(file_path)
@@ -121,38 +123,86 @@ def plot_idr_and_force(idr_01, idr_02, mu_nr_01, mu_nr_02, force_signal, fsamp):
     plt.show()
 
 
+def plot_muap_shapes(muap_shapes, mu_index):
+    """
+    Plot the MUAP shapes of all 16 channels for one exemplary motor unit.
+
+    Parameters:
+    muap_shapes : list of lists of arrays
+        MUAP shapes of all motor units for each channel.
+    mu_index : int
+        Index of the exemplary motor unit to plot.
+    """
+    fig, axes = plt.subplots(16, 1, figsize=(10, 20), sharex=True)
+    fig.suptitle(f'MUAP Shapes of Motor Unit {mu_index + 1}')
+
+    for i in range(16):
+        channel_data = muap_shapes[mu_index][i][0] if muap_shapes[mu_index][i] is not None else np.zeros(1)
+        axes[15 - i].plot(channel_data)
+        axes[15 - i].set_ylabel(f'Ch {i + 1}')
+        axes[15 - i].set_yticks([])
+
+    axes[-1].set_xlabel('Time (samples)')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.show()
+
+
+def plot_sta(sta_sig, mu_num):
+    fig, axs = plt.subplots(16, 1, figsize=(10, 20), sharex=True)
+    fig.suptitle(f"Spike Triggered Averages of Motor Unit Number: {mu_num}")
+
+    for count, emg_sig in enumerate(sta_sig):
+        axs[15 - count].plot(emg_sig)
+        axs[15 - count].set_ylabel(f'Ch {count + 1}')
+        axs[15 - count].set_yticks([])
+
+    axs[-1].set_xlabel('Time (samples)')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.show()
+
+
 def main():
     cwd = os.getcwd()
     file_path = os.path.join(cwd, "Data", "iEMG_contraction.mat")
 
     data = import_data(file_path)
 
-    EMGSig = data['EMGSig']
-
-    mu_pulses = data['MUPulses']
-    mu_pulses = pulses_to_list(mu_pulses)
-    sorted_mu = sort_mus(mu_pulses)
-
-    force_signal = data['force_signal']
-
+    emg_signal = data['EMGSig']
     fsamp = data['fsamp']
-
+    force_signal = data['force_signal']
     signal_length_samples = data['signal_length_samples']
 
+    orig_mu_pulses = data['MUPulses']
+    mu_pulses = pulses_to_list(orig_mu_pulses)
+    sorted_mu = sort_mus(mu_pulses)
+
+    # 1.1
     firing_matrix = mu_pulses_to_firing_matrix(mu_pulses)
+
+    # 1.2
     sorted_firing_matrix = mu_pulses_to_firing_matrix(sorted_mu)
 
+    # 1.3
     idr_01 = calculate_idr(mu_pulses[1], fsamp)
     idr_02 = calculate_idr(mu_pulses[2], fsamp)
 
+    # 2.1
+    mu_num = 2
+    time = 0.025
+    sta_sig = sta.calculate_sta(emg=emg_signal, mu_sig=mu_pulses, mu_num=mu_num, time=time, fsamp=fsamp)
+
     # Plots
-    # Plot original spike train
+    # 1.1 Plot original spike train
     # plot_spike_trains_and_force(firing_matrix=firing_matrix, force_signal=force_signal, fsamp=fsamp)
 
-    # Plot sorted spike train
+    # 1.2 Plot sorted spike train
     # plot_spike_trains_and_force(firing_matrix=sorted_firing_matrix, force_signal=force_signal, fsamp=fsamp)
 
-    plot_idr_and_force(idr_01=idr_01, idr_02=idr_02, mu_nr_01=1, mu_nr_02=2, force_signal=force_signal, fsamp=fsamp)
+    # 1.3 Plot the IDR with the force signal
+    # plot_idr_and_force(idr_01=idr_01, idr_02=idr_02, mu_nr_01=1, mu_nr_02=2, force_signal=force_signal, fsamp=fsamp)
+
+    # 2.1 Plot the STAs
+    plot_sta(sta_sig=sta_sig, mu_num=mu_num)
 
 
 if __name__ == "__main__":
