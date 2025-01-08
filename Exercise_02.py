@@ -3,13 +3,32 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
+import seaborn as sb
 
 
 def import_data(file_path):
+    """
+    Import data from a .mat file.
+
+    Parameters:
+    file_path (str): Path to the .mat file.
+
+    Returns:
+    dict: Data loaded from the .mat file.
+    """
     return sp.io.loadmat(file_path)
 
 
 def mu_pulses_to_firing_matrix(mu_pulses) -> np.ndarray:
+    """
+    Convert motor unit pulses to a firing matrix.
+
+    Parameters:
+    mu_pulses (list): List of motor unit pulses.
+
+    Returns:
+    np.ndarray: Firing matrix where rows represent motor units and columns represent time points.
+    """
     # find max entry in MUPulses
     maximum = 0
     for array in mu_pulses:
@@ -33,12 +52,12 @@ def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal, fsamp):
     Plots the spike trains of all motor units along with the force signal.
 
     Args:
-        firing_matrix: A 2D NumPy array where rows represent motor units
-                      and columns represent time points.
-                      A value of 1 indicates a spike, 0 otherwise.
-        force_signal: A 1D NumPy array representing the force signal over time.
+        firing_matrix (np.ndarray): A 2D NumPy array where rows represent motor units
+                                    and columns represent time points.
+                                    A value of 1 indicates a spike, 0 otherwise.
+        force_signal (np.ndarray): A 1D NumPy array representing the force signal over time.
+        fsamp (int): Sampling frequency.
     """
-
     num_motor_units, num_time_points = firing_matrix.shape
 
     # Create a figure and axes
@@ -77,12 +96,30 @@ def plot_spike_trains_and_force(firing_matrix: np.ndarray, force_signal, fsamp):
 
 
 def sort_mus(mu_pulses: dict):
+    """
+    Sort motor unit pulses by the first pulse time.
+
+    Parameters:
+    mu_pulses (dict): Dictionary of motor unit pulses.
+
+    Returns:
+    list: Sorted list of motor unit pulses.
+    """
     mu_sort = sorted(mu_pulses, key=lambda x: x[0][0])
 
     return mu_sort
 
 
 def pulses_to_list(mu_pulses):
+    """
+    Convert motor unit pulses from a dictionary to a list.
+
+    Parameters:
+    mu_pulses (dict): Dictionary of motor unit pulses.
+
+    Returns:
+    list: List of motor unit pulses.
+    """
     array_list = []
 
     for array in mu_pulses[0]:
@@ -92,6 +129,16 @@ def pulses_to_list(mu_pulses):
 
 
 def calculate_idr(mu_pulse, fsamp):
+    """
+    Calculate the instantaneous discharge rate (IDR) of a motor unit.
+
+    Parameters:
+    mu_pulse (np.ndarray): Array of motor unit pulse times.
+    fsamp (int): Sampling frequency.
+
+    Returns:
+    list: List containing time stamps and IDR values.
+    """
     timediff = np.diff(mu_pulse / fsamp)
 
     idr = 1 / timediff
@@ -102,6 +149,17 @@ def calculate_idr(mu_pulse, fsamp):
 
 
 def plot_idr_and_force(idr_01, idr_02, mu_nr_01, mu_nr_02, force_signal, fsamp):
+    """
+    Plot the instantaneous discharge rate (IDR) of two motor units along with the force signal.
+
+    Parameters:
+    idr_01 (list): IDR values for the first motor unit.
+    idr_02 (list): IDR values for the second motor unit.
+    mu_nr_01 (int): Motor unit number for the first motor unit.
+    mu_nr_02 (int): Motor unit number for the second motor unit.
+    force_signal (np.ndarray): Force signal over time.
+    fsamp (int): Sampling frequency.
+    """
     time_vector = np.rot90((np.arange(0, len(force_signal)) / fsamp))
 
     fig, axs1 = plt.subplots(figsize=(8, 4))
@@ -126,10 +184,8 @@ def plot_muap_shapes(muap_shapes, mu_index):
     Plot the MUAP shapes of all 16 channels for one exemplary motor unit.
 
     Parameters:
-    muap_shapes : list of lists of arrays
-        MUAP shapes of all motor units for each channel.
-    mu_index : int
-        Index of the exemplary motor unit to plot.
+    muap_shapes (list): List of MUAP shapes for all motor units.
+    mu_index (int): Index of the exemplary motor unit to plot.
     """
     fig, axes = plt.subplots(16, 1, figsize=(10, 20), sharex=True)
     fig.suptitle(f'MUAP Shapes of Motor Unit {mu_index + 1}')
@@ -146,6 +202,19 @@ def plot_muap_shapes(muap_shapes, mu_index):
 
 
 def calculate_sta(emg, mu, mu_num, time, fsamp):
+    """
+    Calculate the spike-triggered average (STA) for a given motor unit.
+
+    Parameters:
+    emg (np.ndarray): EMG signal.
+    mu (list): List of motor unit pulses.
+    mu_num (int): Motor unit number.
+    time (float): Time window for STA calculation.
+    fsamp (int): Sampling frequency.
+
+    Returns:
+    list: List of STA signals for each channel.
+    """
     sample_window = int(((time * fsamp) // 2).item())
     mu = mu[mu_num]
 
@@ -167,6 +236,13 @@ def calculate_sta(emg, mu, mu_num, time, fsamp):
 
 
 def plot_sta(sta_sig, mu_num):
+    """
+    Plot the spike-triggered averages (STA) for a given motor unit.
+
+    Parameters:
+    sta_sig (list): List of STA signals for each channel.
+    mu_num (int): Motor unit number.
+    """
     fig, axs = plt.subplots(16, 1, figsize=(10, 20), sharex=True)
     fig.suptitle(f"Spike Triggered Averages of Motor Unit Number: {mu_num}")
 
@@ -181,33 +257,18 @@ def plot_sta(sta_sig, mu_num):
 
 
 def calculate_p2p(emg, mu, time, fsamp):
-    sample_window = int(((time * fsamp) // 2).item())
+    """
+    Calculate the peak-to-peak (P2P) values for each motor unit.
 
-    max_p2p = []
-    for unit in mu:
-        unit_max = []
-        for y in range(emg.shape[1]):
-            for x in range(emg.shape[0]):
-                sig = emg[x][y]
-                electrode_max = 0
+    Parameters:
+    emg (np.ndarray): EMG signal.
+    mu (list): List of motor unit pulses.
+    time (float): Time window for P2P calculation.
+    fsamp (int): Sampling frequency.
 
-                for mu_idx in unit[0]:
-                    if sample_window < mu_idx < (sig.shape[1] - sample_window):
-                        local_window = sig[0][mu_idx - sample_window:mu_idx + sample_window]
-                        minmax = [np.min(local_window), np.max(local_window)]
-                        dist = np.diff(minmax)
-                    else:
-                        dist = electrode_max
-
-                    if dist > electrode_max:
-                        electrode_max = dist
-
-                unit_max.append(electrode_max)
-        max_p2p.append(np.max(unit_max))
-    return max_p2p
-
-
-def test(emg, mu, time, fsamp):
+    Returns:
+    list: List of maximum P2P values for each motor unit.
+    """
     dist_all = []
     for unit in range(len(mu)):
         sta = calculate_sta(emg, mu, unit, time, fsamp)
@@ -223,6 +284,12 @@ def test(emg, mu, time, fsamp):
 
 
 def plot_max_p2p(p2p):
+    """
+    Plot the maximum peak-to-peak (P2P) values for each motor unit.
+
+    Parameters:
+    p2p (list): List of maximum P2P values for each motor unit.
+    """
     fig, axs = plt.subplots(figsize=(10, 5))
 
     x_ax = np.arange(0, len(p2p))
@@ -244,7 +311,49 @@ def plot_max_p2p(p2p):
     plt.show()
 
 
+def compute_rms(emg, mu, time, fsamp):
+    """
+    Compute the root-mean-square (RMS) of the MUAP for each channel of each motor unit.
+
+    Parameters:
+    emg (np.ndarray): EMG signal.
+    mu (list): List of motor unit pulses.
+    time (float): Time window for RMS calculation.
+    fsamp (int): Sampling frequency.
+
+    Returns:
+    list: List of RMS values for each channel of each motor unit.
+    """
+    rms = []
+    for mu_num in range(len(mu)):
+        sta = calculate_sta(emg, mu, mu_num, time, fsamp)
+        for channel_idx, array in enumerate(sta):
+            if len(rms) <= channel_idx:
+                rms.append([])
+            rms[channel_idx].append(np.sqrt(np.mean(array ** 2)))
+    return rms
+
+
+def plot_rms(rms):
+    """
+    Plot the RMS values as a heatmap.
+
+    Parameters:
+    rms (list): List of RMS values for each channel of each motor unit.
+    """
+    plt.figure(figsize=(10, 8))
+    sb.heatmap(rms, cmap='viridis', cbar=True)
+    plt.gca().invert_yaxis()
+    plt.title('RMS Heatmap')
+    plt.ylabel('Channels')
+    plt.xlabel('Motor Units')
+    plt.show()
+
+
 def main():
+    """
+    Main function to execute the analysis and plotting of EMG data.
+    """
     cwd = os.getcwd()
     file_path = os.path.join(cwd, "Data", "iEMG_contraction.mat")
 
@@ -275,24 +384,30 @@ def main():
     sta_sig = calculate_sta(emg=emg, mu=mu, mu_num=mu_num, time=time, fsamp=fsamp)
 
     # 3.1 Compute peak-to-peak values
-    p2p = calculate_p2p(emg=emg, mu=mu, time=time, fsamp=fsamp)
-    lax = test(emg, sorted_mu, time, fsamp)
-    k = 0
+    p2p = calculate_p2p(emg, sorted_mu, time, fsamp)
+
+    # 4.1
+    rms = compute_rms(emg, sorted_mu, time, fsamp)
+
+    test = 0
     # Plots
     # 1.1 Plot original spike train
-    # plot_spike_trains_and_force(firing_matrix=firing_matrix, force_signal=force_signal, fsamp=fsamp)
+    plot_spike_trains_and_force(firing_matrix=firing_matrix, force_signal=force_signal, fsamp=fsamp)
 
     # 1.2 Plot sorted spike train
-    # plot_spike_trains_and_force(firing_matrix=sorted_firing_matrix, force_signal=force_signal, fsamp=fsamp)
+    plot_spike_trains_and_force(firing_matrix=sorted_firing_matrix, force_signal=force_signal, fsamp=fsamp)
 
     # 1.3 Plot the IDR with the force signal
-    # plot_idr_and_force(idr_01=idr_01, idr_02=idr_02, mu_nr_01=1, mu_nr_02=2, force_signal=force_signal, fsamp=fsamp)
+    plot_idr_and_force(idr_01=idr_01, idr_02=idr_02, mu_nr_01=1, mu_nr_02=2, force_signal=force_signal, fsamp=fsamp)
 
     # 2.1 Plot the STAs
-    # plot_sta(sta_sig=sta_sig, mu_num=mu_num)
+    plot_sta(sta_sig=sta_sig, mu_num=mu_num)
 
     # 3.2 Plot the correlation (Can get only the p2p values, because this was calculated with the already sorted mus)
-    plot_max_p2p(p2p=lax)
+    plot_max_p2p(p2p=p2p)
+
+    #4.2 Plot the RMS
+    plot_rms(rms)
 
 
 if __name__ == "__main__":
