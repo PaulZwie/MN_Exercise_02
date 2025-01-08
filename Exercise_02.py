@@ -226,7 +226,7 @@ def plot_max_p2p(p2p):
     fig, axs = plt.subplots(figsize=(10, 5))
 
     x_ax = np.arange(0, len(p2p))
-    axs.scatter(x=x_ax, y=p2p)
+    axs.scatter(x=x_ax, y=p2p, label="Max Amplitudes")
 
     # Add linear regression line
     slope, intercept = np.polyfit(x_ax, p2p, 1)
@@ -240,6 +240,7 @@ def plot_max_p2p(p2p):
     fig.suptitle("Maximum amplitude of the different Motor Unit Action Potentials")
     axs.grid(True, which='both', linestyle='--', linewidth=0.5)  # Add grid to the plot
     fig.tight_layout()
+    fig.legend()
     plt.show()
 
 
